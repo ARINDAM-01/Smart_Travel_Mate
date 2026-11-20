@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -26,7 +25,6 @@ import {
   BarChart3,
   CheckCircle,
   MapPin,
-  Download,
 } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import api, { extractError } from '../services/api';
@@ -38,7 +36,7 @@ import EmptyState from '../components/common/EmptyState';
 import { EXPENSE_CATEGORIES, CURRENCY_LIST } from '../utils/constants';
 
 const Budget = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const tripIdParam = searchParams.get('tripId');
 
   const [trips, setTrips] = useState([]);
@@ -49,8 +47,6 @@ const Budget = () => {
   const [loadingTrips, setLoadingTrips] = useState(true);
   const [tripPickerOpen, setTripPickerOpen] = useState(false);
   const [budgetError, setBudgetError] = useState('');
-  const [syncingPlanCosts, setSyncingPlanCosts] = useState(false);
-  const [planSyncMessage, setPlanSyncMessage] = useState('');
   const requestId = useRef(0);
 
   // Add/Edit modal state
@@ -76,8 +72,6 @@ const Budget = () => {
         }
       } catch (err) {
         console.error(err);
-      } finally {
-        setLoadingTrips(false);
       }
     };
     loadTrips();
@@ -85,39 +79,24 @@ const Budget = () => {
 
   const fetchBudgetDetails = async (tripId) => {
     if (!tripId) return;
-    const currentRequestId = ++requestId.current;
     setLoading(true);
-    setBudgetError('');
-    setExpenses([]);
-    setAnalytics(null);
     try {
       const [expRes, anaRes] = await Promise.all([
         api.get(`/expenses/${tripId}`),
         api.get(`/analytics/${tripId}`),
       ]);
-      if (currentRequestId !== requestId.current) return;
       setExpenses(expRes.data.data.expenses);
       setAnalytics(anaRes.data.data);
     } catch (err) {
       console.error(err);
-      if (currentRequestId === requestId.current) {
-        setBudgetError(extractError(err));
-      }
     } finally {
-      if (currentRequestId === requestId.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     if (selectedTripId) {
       fetchBudgetDetails(selectedTripId);
-    } else {
-      requestId.current += 1;
-      setLoading(false);
-      setExpenses([]);
-      setAnalytics(null);
     }
   }, [selectedTripId]);
 
@@ -128,27 +107,6 @@ const Budget = () => {
   };
 
   const selectedTrip = trips.find((trip) => trip.id === selectedTripId);
-
-  const handleSyncPlanCosts = async () => {
-    if (!selectedTripId) return;
-    setSyncingPlanCosts(true);
-    setPlanSyncMessage('');
-    setBudgetError('');
-    try {
-      const { data } = await api.post(`/expenses/${selectedTripId}/sync-itinerary`);
-      const count = data.data.syncedCount;
-      setPlanSyncMessage(
-        count > 0
-          ? `${count} itinerary cost${count === 1 ? '' : 's'} synced to the budget.`
-          : 'No estimated costs were found in this trip plan.'
-      );
-      await fetchBudgetDetails(selectedTripId);
-    } catch (err) {
-      setBudgetError(extractError(err));
-    } finally {
-      setSyncingPlanCosts(false);
-    }
-  };
 
   const handleSubmitExpense = async (e) => {
     e.preventDefault();
@@ -222,26 +180,15 @@ const Budget = () => {
           <label className="text-xs font-bold uppercase tracking-wider text-white/50">Trip:</label>
           <select
             value={selectedTripId}
-            onChange={(e) => handleSelectTrip(e.target.value)}
+            onChange={(e) => setSelectedTripId(e.target.value)}
             className="bg-navy-secondary border border-white/15 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-electric-blue"
-            disabled={loadingTrips || trips.length === 0}
           >
-            {!trips.length && <option value="">No trips available</option>}
             {trips.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.title}
               </option>
             ))}
           </select>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={MapPin}
-            onClick={() => setTripPickerOpen(true)}
-            disabled={loadingTrips || trips.length === 0}
-          >
-            Choose from My Trips
-          </Button>
         </div>
 
         <Button
@@ -268,12 +215,6 @@ const Budget = () => {
         </Button>
       </div>
 
-      {planSyncMessage && (
-        <div className="glass-card p-4 border border-emerald-400/30 text-sm text-emerald-300 mb-6" role="status">
-          {planSyncMessage}
-        </div>
-      )}
-
       {budgetError && (
         <div className="glass-card p-4 border border-red-400/30 text-sm text-red-300 mb-6" role="alert">
           Could not load this trip&apos;s budget: {budgetError}
@@ -297,11 +238,6 @@ const Budget = () => {
                   ? `${analytics.currency} ${analytics.totalBudget.toLocaleString()}`
                   : 'Flexible'}
               </span>
-              {selectedTrip && (
-                <span className="block mt-1 text-[11px] text-white/40">
-                  Synced from {selectedTrip.title}&apos;s travel plan
-                </span>
-              )}
             </div>
 
             <div className="glass-card p-5 border border-white/10">
@@ -528,38 +464,6 @@ const Budget = () => {
           />
         </div>
       )}
-
-      <Modal
-        isOpen={tripPickerOpen}
-        onClose={() => setTripPickerOpen(false)}
-        title="Choose a trip from My Trips"
-      >
-        <div className="space-y-2">
-          {trips.map((trip) => (
-            <button
-              key={trip.id}
-              type="button"
-              onClick={() => handleSelectTrip(trip.id)}
-              className={`w-full rounded-xl border p-4 text-left transition-colors ${
-                selectedTripId === trip.id
-                  ? 'border-electric-blue/60 bg-electric-blue/10'
-                  : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.07]'
-              }`}
-            >
-              <span className="block font-semibold text-white">{trip.title}</span>
-              <span className="mt-1 block text-xs text-white/50">
-                {Array.isArray(trip.destinations) && trip.destinations.length > 0
-                  ? trip.destinations.join(', ')
-                  : trip.startLocation}
-                {' · '}
-                {trip.budget
-                  ? `${trip.currency} ${Number(trip.budget).toLocaleString()}`
-                  : 'Flexible budget'}
-              </span>
-            </button>
-          ))}
-        </div>
-      </Modal>
 
       {/* ================= ADD/EDIT EXPENSE MODAL ================= */}
       <Modal

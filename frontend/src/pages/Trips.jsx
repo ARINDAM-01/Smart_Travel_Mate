@@ -17,7 +17,6 @@ import {
   ExternalLink,
   AlertCircle,
   X,
-  Wallet,
 } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import api, { extractError } from '../services/api';
@@ -283,11 +282,6 @@ const Trips = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link to={`/dashboard/budget?tripId=${activeTrip.id}`}>
-                    <Button variant="gradient" size="sm" icon={Wallet}>
-                      Manage Budget
-                    </Button>
-                  </Link>
                   <Button
                     variant="outline"
                     size="sm"
