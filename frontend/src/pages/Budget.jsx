@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   PieChart,
@@ -24,7 +24,6 @@ import {
   PieChart as PieIcon,
   BarChart3,
   CheckCircle,
-  MapPin,
 } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import api, { extractError } from '../services/api';
@@ -44,10 +43,6 @@ const Budget = () => {
   const [expenses, setExpenses] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [loadingTrips, setLoadingTrips] = useState(true);
-  const [tripPickerOpen, setTripPickerOpen] = useState(false);
-  const [budgetError, setBudgetError] = useState('');
-  const requestId = useRef(0);
 
   // Add/Edit modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,14 +94,6 @@ const Budget = () => {
       fetchBudgetDetails(selectedTripId);
     }
   }, [selectedTripId]);
-
-  const handleSelectTrip = (tripId) => {
-    setSelectedTripId(tripId);
-    setSearchParams(tripId ? { tripId } : {});
-    setTripPickerOpen(false);
-  };
-
-  const selectedTrip = trips.find((trip) => trip.id === selectedTripId);
 
   const handleSubmitExpense = async (e) => {
     e.preventDefault();
@@ -214,12 +201,6 @@ const Budget = () => {
           Add Expense
         </Button>
       </div>
-
-      {budgetError && (
-        <div className="glass-card p-4 border border-red-400/30 text-sm text-red-300 mb-6" role="alert">
-          Could not load this trip&apos;s budget: {budgetError}
-        </div>
-      )}
 
       {loading ? (
         <div className="flex justify-center py-20">
