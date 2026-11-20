@@ -51,7 +51,6 @@ const Budget = () => {
   const [budgetError, setBudgetError] = useState('');
   const [syncingPlanCosts, setSyncingPlanCosts] = useState(false);
   const [planSyncMessage, setPlanSyncMessage] = useState('');
-  const [planSyncError, setPlanSyncError] = useState('');
   const requestId = useRef(0);
 
   // Add/Edit modal state
@@ -134,7 +133,7 @@ const Budget = () => {
     if (!selectedTripId) return;
     setSyncingPlanCosts(true);
     setPlanSyncMessage('');
-    setPlanSyncError('');
+    setBudgetError('');
     try {
       const { data } = await api.post(`/expenses/${selectedTripId}/sync-itinerary`);
       const count = data.data.syncedCount;
@@ -145,11 +144,7 @@ const Budget = () => {
       );
       await fetchBudgetDetails(selectedTripId);
     } catch (err) {
-      setPlanSyncError(
-        err.response?.status === 404
-          ? 'The backend does not have the AI plan sync route yet. Redeploy the latest backend and try again.'
-          : extractError(err)
-      );
+      setBudgetError(extractError(err));
     } finally {
       setSyncingPlanCosts(false);
     }
@@ -276,12 +271,6 @@ const Budget = () => {
       {planSyncMessage && (
         <div className="glass-card p-4 border border-emerald-400/30 text-sm text-emerald-300 mb-6" role="status">
           {planSyncMessage}
-        </div>
-      )}
-
-      {planSyncError && (
-        <div className="glass-card p-4 border border-red-400/30 text-sm text-red-300 mb-6" role="alert">
-          Could not sync AI plan costs: {planSyncError}
         </div>
       )}
 
