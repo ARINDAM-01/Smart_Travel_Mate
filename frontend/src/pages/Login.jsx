@@ -146,7 +146,12 @@ const Login = () => {
               <div className="flex justify-center">
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
-                  onError={() => setErrorMsg('Google authentication failed')}
+                  onError={({ error } = {}) => {
+                    const hint = error
+                      ? `Google authentication failed (${error}).`
+                      : 'Google authentication failed.';
+                    setErrorMsg(`${hint} If the page reports origin_mismatch, add this exact browser origin to Google Cloud Console: ${window.location.origin}`);
+                  }}
                   useOneTap={false}
                 />
               </div>
