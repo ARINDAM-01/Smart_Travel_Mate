@@ -28,6 +28,8 @@ services:
         generateValue: true
       - key: GEMINI_API_KEY
         sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
       - key: FRONTEND_URL
         fromService:
           type: web
@@ -48,4 +50,9 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://travelmate-3102.onrender.com/api
+        fromService:
+          type: web
+          name: travelmate-backend
+          property: host
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false

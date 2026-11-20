@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { GoogleLogin } from '@react-oauth/google';
 import { Mail, Lock, Eye, EyeOff, Plane, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 
 const Login = () => {
-  const { user, login } = useAuth();
+  const { user, login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -45,6 +46,16 @@ const Login = () => {
   const handleDemoFill = () => {
     setEmail('demo@travelmate.com');
     setPassword('Demo123!');
+  };
+
+  const handleGoogleSuccess = async ({ credential }) => {
+    setErrorMsg('');
+    const result = await loginWithGoogle(credential);
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setErrorMsg(result.error || 'Google authentication failed');
+    }
   };
 
   return (
@@ -124,6 +135,28 @@ const Login = () => {
               </Button>
             </div>
           </form>
+
+          {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+            <>
+              <div className="my-5 flex items-center gap-3 text-xs text-white/40">
+                <div className="h-px flex-1 bg-white/10" />
+                <span>OR</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={({ error } = {}) => {
+                    const hint = error
+                      ? `Google authentication failed (${error}).`
+                      : 'Google authentication failed.';
+                    setErrorMsg(`${hint} If the page reports origin_mismatch, add this exact browser origin to Google Cloud Console: ${window.location.origin}`);
+                  }}
+                  useOneTap={false}
+                />
+              </div>
+            </>
+          )}
 
           {/* Quick Demo credentials filler */}
           <div className="mt-5 p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between text-xs">

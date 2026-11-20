@@ -10,6 +10,7 @@ const config = {
   geminiModel: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
   openweatherApiKey: process.env.OPENWEATHER_API_KEY,
   unsplashAccessKey: process.env.UNSPLASH_ACCESS_KEY,
+  googleClientId: process.env.GOOGLE_CLIENT_ID,
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
   isProduction: process.env.NODE_ENV === 'production',
 };

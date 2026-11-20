@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   register,
   login,
+  googleLogin,
   logout,
   getMe,
   forgotPassword,
@@ -23,6 +24,7 @@ const { authLimiter } = require('../middleware/rateLimiter');
 
 router.post('/register', authLimiter, validate(registerSchema), register);
 router.post('/login', authLimiter, validate(loginSchema), login);
+router.post('/google', authLimiter, googleLogin);
 router.post('/logout', authenticateToken, logout);
 router.get('/me', authenticateToken, getMe);
 router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), forgotPassword);

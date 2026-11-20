@@ -1,8 +1,10 @@
 const bcrypt = require('bcryptjs');
+const { OAuth2Client } = require('google-auth-library');
 const { prisma } = require('../config/database');
 const { generateAccessToken, generatePasswordResetToken } = require('../utils/jwt');
 const { successResponse, errorResponse } = require('../utils/response');
 const config = require('../config');
+const googleClient = new OAuth2Client(config.googleClientId);
 
 const cookieOptions = {
   httpOnly: true,
@@ -62,7 +64,7 @@ const login = async (req, res, next) => {
             email: 'demo@travelmate.com',
             name: 'Alex Rivera',
             passwordHash,
-            preferredCurrency: 'USD',
+            preferredCurrency: 'INR',
             travelPreferences: ['cultural', 'food', 'adventure'],
             notificationPrefs: { emailUpdates: true, tripReminders: true },
           },
@@ -79,7 +81,9 @@ const login = async (req, res, next) => {
       return errorResponse(res, 'Invalid email or password', 401);
     }
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    const isMatch = user.passwordHash
+      ? await bcrypt.compare(password, user.passwordHash)
+      : false;
     if (!isMatch) {
       return errorResponse(res, 'Invalid email or password', 401);
     }
@@ -99,6 +103,80 @@ const login = async (req, res, next) => {
     };
 
     return successResponse(res, { user: safeUser, token }, 'Login successful');
+  } catch (err) {
+    next(err);
+  }
+};
+
+const googleLogin = async (req, res, next) => {
+  try {
+    if (!config.googleClientId) {
+      return errorResponse(res, 'Google authentication is not configured', 503);
+    }
+
+    const { credential } = req.body;
+    if (!credential) {
+      return errorResponse(res, 'Google credential is required', 400);
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: config.googleClientId,
+    });
+    const payload = ticket.getPayload();
+
+    if (!payload?.sub || !payload.email || payload.email_verified !== true) {
+      return errorResponse(res, 'Google account email is not verified', 401);
+    }
+
+    const email = payload.email.toLowerCase();
+    let user = await prisma.user.findUnique({
+      where: { googleId: payload.sub },
+    });
+
+    if (!user) {
+      user = await prisma.user.findUnique({ where: { email } });
+
+      if (user) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            googleId: payload.sub,
+            avatarUrl: user.avatarUrl || payload.picture,
+          },
+        });
+      } else {
+        user = await prisma.user.create({
+          data: {
+            googleId: payload.sub,
+            email,
+            name: payload.name || email.split('@')[0],
+            passwordHash: null,
+            avatarUrl: payload.picture,
+          },
+        });
+      }
+    }
+
+    if (!user.isActive) {
+      return errorResponse(res, 'Account is disabled', 401);
+    }
+
+    const token = generateAccessToken({ userId: user.id });
+    res.cookie('token', token, cookieOptions);
+
+    const safeUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      preferredCurrency: user.preferredCurrency,
+      travelPreferences: user.travelPreferences,
+      notificationPrefs: user.notificationPrefs,
+      avatarUrl: user.avatarUrl,
+      createdAt: user.createdAt,
+    };
+
+    return successResponse(res, { user: safeUser, token }, 'Google login successful');
   } catch (err) {
     next(err);
   }
@@ -211,7 +289,9 @@ const changePassword = async (req, res, next) => {
       where: { id: req.user.id },
     });
 
-    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    const isMatch = user.passwordHash
+      ? await bcrypt.compare(currentPassword, user.passwordHash)
+      : false;
     if (!isMatch) {
       return errorResponse(res, 'Current password verification failed', 400);
     }
@@ -231,6 +311,7 @@ const changePassword = async (req, res, next) => {
 module.exports = {
   register,
   login,
+  googleLogin,
   logout,
   getMe,
   forgotPassword,

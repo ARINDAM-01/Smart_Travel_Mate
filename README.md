@@ -105,6 +105,7 @@ DATABASE_URL=postgresql://user:password@localhost:5432/travelmate?schema=public
 JWT_SECRET=super_secure_travelmate_secret_minimum_32_characters_long
 COOKIE_SECRET=secure_cookie_secret_value
 GEMINI_API_KEY=your_gemini_api_key_here
+GOOGLE_CLIENT_ID=your_google_oauth_web_client_id
 FRONTEND_URL=http://localhost:5173
 ```
 
@@ -135,7 +136,13 @@ cp .env.example .env
 Configure frontend `.env`:
 ```env
 VITE_API_URL=http://localhost:5000/api
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_web_client_id
 ```
+
+Google sign-in requires a Web application OAuth client ID from Google Cloud
+Console. Add `http://localhost:5173` and your production frontend URL to the
+authorized JavaScript origins, then set the same client ID in both backend
+`GOOGLE_CLIENT_ID` and frontend `VITE_GOOGLE_CLIENT_ID`.
 
 Install dependencies and start development server:
 ```bash
@@ -221,6 +228,7 @@ TravelMate is configured for deployment on Render.
    - `JWT_SECRET`: *(Secure string of 32+ characters)*
    - `COOKIE_SECRET`: *(Secure secret)*
    - `GEMINI_API_KEY`: *(Your Google AI Studio Gemini API key)*
+   - `GOOGLE_CLIENT_ID`: *(OAuth 2.0 Web application client ID)*
    - `FRONTEND_URL`: *(Your frontend URL on Render)*
 
 ### 3. Frontend Static Site on Render
@@ -231,6 +239,22 @@ TravelMate is configured for deployment on Render.
    - **Publish Directory**: `dist`
 3. Add Environment Variables:
    - `VITE_API_URL`: `https://travelmate-3102.onrender.com/api`
+   - `VITE_GOOGLE_CLIENT_ID`: *(The same OAuth 2.0 Web application client ID)*
+
+### Google OAuth Origin Setup
+
+The `origin_mismatch` error means Google has not authorized the exact origin
+serving the frontend. It is separate from the backend API URL.
+
+In Google Cloud Console:
+1. Open **APIs & Services > Credentials**.
+2. Edit the OAuth 2.0 Client ID used by TravelMate.
+3. Under **Authorized JavaScript origins**, add every exact browser origin:
+   - `http://localhost:5173` for local development
+   - Your deployed frontend origin, for example `https://travelmate-frontend.onrender.com`
+4. Do not add `/login`, `/dashboard`, or any API path.
+5. Set `GOOGLE_CLIENT_ID` and `VITE_GOOGLE_CLIENT_ID` to the same client ID,
+   then redeploy both services.
 
 ---
 

@@ -1,0 +1,20 @@
+ALTER TABLE "User"
+ALTER COLUMN "preferredCurrency" SET DEFAULT 'INR';
+
+ALTER TABLE "Trip"
+ALTER COLUMN "currency" SET DEFAULT 'INR';
+
+ALTER TABLE "Destination"
+ALTER COLUMN "currency" SET DEFAULT 'INR';
+
+ALTER TABLE "Attraction"
+ALTER COLUMN "currency" SET DEFAULT 'INR';
+
+ALTER TABLE "Activity"
+ALTER COLUMN "currency" SET DEFAULT 'INR';
+
+ALTER TABLE "GraphEdge"
+ALTER COLUMN "currency" SET DEFAULT 'INR';
+
+ALTER TABLE "Expense"
+ALTER COLUMN "currency" SET DEFAULT 'INR';

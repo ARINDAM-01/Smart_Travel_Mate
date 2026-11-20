@@ -170,7 +170,7 @@ const createEdge = async (req, res, next) => {
         duration: duration != null ? parseFloat(duration) : null,
         transportMode,
         estimatedCost: estimatedCost != null ? parseFloat(estimatedCost) : null,
-        currency: currency || 'USD',
+        currency: currency || 'INR',
         weight: computedWeight,
         isDirected: Boolean(isDirected),
         metadata,
