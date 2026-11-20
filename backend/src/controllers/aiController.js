@@ -1,6 +1,8 @@
 const { generateItineraryPlan, aiTravelChat } = require('../services/aiService');
 const { prisma } = require('../config/database');
 const { successResponse, errorResponse } = require('../utils/response');
+const { v4: uuidv4 } = require('uuid');
+const { getPlanCostEntries } = require('../utils/planExpenses');
 
 const generateItinerary = async (req, res, next) => {
   try {
@@ -33,8 +35,11 @@ const saveGeneratedItinerary = async (req, res, next) => {
       return errorResponse(res, 'Valid generated plan object is required', 400);
     }
 
+    const tripId = uuidv4();
+    const planCosts = getPlanCostEntries(plan.estimatedExpenses);
     const trip = await prisma.trip.create({
       data: {
+        id: tripId,
         userId: req.user.id,
         title: title || `${plan.destinations?.[0] || 'AI Planned'} Expedition`,
         description: plan.tripOverview,
@@ -44,6 +49,18 @@ const saveGeneratedItinerary = async (req, res, next) => {
         budget: plan.estimatedExpenses?.totalEstimated || null,
         estimatedExpenses: plan.estimatedExpenses || null,
         status: 'planning',
+        expenses: {
+          create: planCosts.map(({ category, amount, currency: planCurrency }) => ({
+            userId: req.user.id,
+            sourceKey: `plan:${tripId}:${category}`,
+            category,
+            title: `AI plan: ${category}`,
+            description: `Estimated ${category} cost from the AI trip plan`,
+            amount,
+            currency: planCurrency || plan.estimatedExpenses?.currency || currency,
+            isEstimated: true,
+          })),
+        },
         itineraryDays: {
           create: plan.days.map((day) => {
             const allActivities = [

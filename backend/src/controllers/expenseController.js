@@ -1,5 +1,6 @@
 const { prisma } = require('../config/database');
 const { successResponse, errorResponse } = require('../utils/response');
+const { getPlanCostEntries } = require('../utils/planExpenses');
 
 const mapActivityCategory = (category) => {
   const value = String(category || '').toLowerCase();
@@ -14,16 +15,14 @@ const mapActivityCategory = (category) => {
   return matches.length === 1 ? matches[0][0] : 'activities';
 };
 
-const getPlanCostEntries = (estimatedExpenses) => {
-  if (!estimatedExpenses || typeof estimatedExpenses !== 'object') return [];
-  return ['transportation', 'accommodation', 'food', 'activities', 'miscellaneous']
-    .map((category) => ({
+const getCategoryBreakdown = (categoryMap, totalSpent) =>
+  Object.entries(categoryMap)
+    .map(([category, amount]) => ({
       category,
-      amount: Number(estimatedExpenses[category]),
-      currency: estimatedExpenses.currency,
+      amount: Math.round(amount * 100) / 100,
+      percentage: totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0,
     }))
-    .filter((entry) => Number.isFinite(entry.amount) && entry.amount > 0);
-};
+    .sort((a, b) => b.amount - a.amount);
 
 const getExpenses = async (req, res, next) => {
   try {
@@ -229,11 +228,7 @@ const getAnalytics = async (req, res, next) => {
       categoryMap[exp.category] = (categoryMap[exp.category] || 0) + exp.amount;
     }
 
-    const byCategory = Object.entries(categoryMap).map(([category, amount]) => ({
-      category,
-      amount: Math.round(amount * 100) / 100,
-      percentage: totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0,
-    }));
+    const byCategory = getCategoryBreakdown(categoryMap, totalSpent);
 
     // Daily spending grouping
     const dateMap = {};
@@ -276,6 +271,6 @@ module.exports = {
   updateExpense,
   deleteExpense,
   getAnalytics,
+  getCategoryBreakdown,
   mapActivityCategory,
-  getPlanCostEntries,
 };

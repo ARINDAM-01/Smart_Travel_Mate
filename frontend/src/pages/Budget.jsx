@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -196,7 +197,7 @@ const Budget = () => {
     }
   };
 
-  const handleEditClick = (exp) => {
+  const handleEditClick = (exp) => { 
     setEditingId(exp.id);
     setFormData({
       title: exp.title,
@@ -215,6 +216,8 @@ const Budget = () => {
     acc[cat.value] = cat.color;
     return acc;
   }, {});
+  const sortedCategoryExpenses = [...(analytics?.byCategory || [])]
+    .sort((a, b) => b.amount - a.amount);
 
   return (
     <DashboardLayout activeTitle="Budget & Expense Analytics">
@@ -343,8 +346,8 @@ const Budget = () => {
                 Actual vs Estimated
               </span>
               <div className="text-xs text-white/80 space-y-1">
-                <p>Confirmed: <span className="font-bold text-white">${analytics.actualSpent}</span></p>
-                <p>Estimated: <span className="font-bold text-electric-cyan">${analytics.estimatedSpent}</span></p>
+                <p>Confirmed: <span className="font-bold text-white">{analytics.currency} {analytics.actualSpent}</span></p>
+                <p>Estimated: <span className="font-bold text-electric-cyan">{analytics.currency} {analytics.estimatedSpent}</span></p>
               </div>
             </div>
           </div>
@@ -357,39 +360,68 @@ const Budget = () => {
                 <PieIcon size={16} className="text-electric-cyan" />
                 Category Breakdown
               </h3>
-              {analytics.byCategory && analytics.byCategory.length > 0 ? (
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={analytics.byCategory}
-                        dataKey="amount"
-                        nameKey="category"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={5}
-                      >
-                        {analytics.byCategory.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={categoryColorMap[entry.category] || '#3B82F6'}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#0B1930',
-                          borderColor: 'rgba(255,255,255,0.1)',
-                          borderRadius: '12px',
-                          color: '#fff',
-                        }}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+              {sortedCategoryExpenses.length > 0 ? (
+                <>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={sortedCategoryExpenses}
+                          dataKey="amount"
+                          nameKey="category"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          paddingAngle={5}
+                        >
+                          {sortedCategoryExpenses.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={categoryColorMap[entry.category] || '#3B82F6'}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#0B1930',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderRadius: '12px',
+                            color: '#fff',
+                          }}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="mt-5 space-y-3">
+                    {sortedCategoryExpenses.map((entry, index) => {
+                      const label = EXPENSE_CATEGORIES.find(
+                        (category) => category.value === entry.category
+                      )?.label || entry.category;
+                      const percentage = Math.max(0, Math.min(entry.percentage, 100));
+                      return (
+                        <div key={entry.category}>
+                          <div className="flex items-center justify-between gap-3 text-xs">
+                            <span className="text-white/70">{index + 1}. {label}</span>
+                            <span className="font-bold text-white">
+                              {analytics.currency} {entry.amount.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="mt-1 h-1.5 rounded-full bg-white/10">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${percentage}%`,
+                                backgroundColor: categoryColorMap[entry.category] || '#3B82F6',
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               ) : (
                 <div className="h-64 flex items-center justify-center text-xs text-white/40 italic">
                   No categorical expense data recorded yet.
