@@ -25,6 +25,7 @@ import {
   BarChart3,
   CheckCircle,
   MapPin,
+  Download,
 } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import api, { extractError } from '../services/api';
@@ -47,6 +48,8 @@ const Budget = () => {
   const [loadingTrips, setLoadingTrips] = useState(true);
   const [tripPickerOpen, setTripPickerOpen] = useState(false);
   const [budgetError, setBudgetError] = useState('');
+  const [syncingPlanCosts, setSyncingPlanCosts] = useState(false);
+  const [planSyncMessage, setPlanSyncMessage] = useState('');
   const requestId = useRef(0);
 
   // Add/Edit modal state
@@ -124,6 +127,27 @@ const Budget = () => {
   };
 
   const selectedTrip = trips.find((trip) => trip.id === selectedTripId);
+
+  const handleSyncPlanCosts = async () => {
+    if (!selectedTripId) return;
+    setSyncingPlanCosts(true);
+    setPlanSyncMessage('');
+    setBudgetError('');
+    try {
+      const { data } = await api.post(`/expenses/${selectedTripId}/sync-itinerary`);
+      const count = data.data.syncedCount;
+      setPlanSyncMessage(
+        count > 0
+          ? `${count} itinerary cost${count === 1 ? '' : 's'} synced to the budget.`
+          : 'No estimated costs were found in this trip plan.'
+      );
+      await fetchBudgetDetails(selectedTripId);
+    } catch (err) {
+      setBudgetError(extractError(err));
+    } finally {
+      setSyncingPlanCosts(false);
+    }
+  };
 
   const handleSubmitExpense = async (e) => {
     e.preventDefault();
@@ -220,6 +244,17 @@ const Budget = () => {
         <Button
           variant="gradient"
           size="sm"
+          icon={Download}
+          onClick={handleSyncPlanCosts}
+          disabled={!selectedTripId || loading || syncingPlanCosts}
+          loading={syncingPlanCosts}
+        >
+          Sync AI Plan Costs
+        </Button>
+
+        <Button
+          variant="gradient"
+          size="sm"
           icon={Plus}
           onClick={() => {
             setEditingId(null);
@@ -229,6 +264,12 @@ const Budget = () => {
           Add Expense
         </Button>
       </div>
+
+      {planSyncMessage && (
+        <div className="glass-card p-4 border border-emerald-400/30 text-sm text-emerald-300 mb-6" role="status">
+          {planSyncMessage}
+        </div>
+      )}
 
       {budgetError && (
         <div className="glass-card p-4 border border-red-400/30 text-sm text-red-300 mb-6" role="alert">

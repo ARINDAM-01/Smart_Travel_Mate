@@ -27,7 +27,7 @@ const generateItinerary = async (req, res, next) => {
 
 const saveGeneratedItinerary = async (req, res, next) => {
   try {
-    const { title, plan, currency = 'USD' } = req.body;
+    const { title, plan, currency = 'INR' } = req.body;
 
     if (!plan || !plan.days) {
       return errorResponse(res, 'Valid generated plan object is required', 400);
@@ -42,6 +42,7 @@ const saveGeneratedItinerary = async (req, res, next) => {
         destinations: plan.destinations || [],
         currency: plan.estimatedExpenses?.currency || currency,
         budget: plan.estimatedExpenses?.totalEstimated || null,
+        estimatedExpenses: plan.estimatedExpenses || null,
         status: 'planning',
         itineraryDays: {
           create: plan.days.map((day) => {

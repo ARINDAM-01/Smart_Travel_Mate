@@ -1,6 +1,30 @@
 const { prisma } = require('../config/database');
 const { successResponse, errorResponse } = require('../utils/response');
 
+const mapActivityCategory = (category) => {
+  const value = String(category || '').toLowerCase();
+  const categories = [
+    ['transportation', /\b(transport|transportation|transit|flight|train|bus|taxi)\b/],
+    ['accommodation', /\b(accommodation|hotel|hostel|lodging|resort|stay)\b/],
+    ['food', /\b(food|restaurant|meal|dining|cafe)\b/],
+    ['shopping', /\b(shop|shopping|market)\b/],
+    ['miscellaneous', /\b(misc|miscellaneous|other)\b/],
+  ];
+  const matches = categories.filter(([, pattern]) => pattern.test(value));
+  return matches.length === 1 ? matches[0][0] : 'activities';
+};
+
+const getPlanCostEntries = (estimatedExpenses) => {
+  if (!estimatedExpenses || typeof estimatedExpenses !== 'object') return [];
+  return ['transportation', 'accommodation', 'food', 'activities', 'miscellaneous']
+    .map((category) => ({
+      category,
+      amount: Number(estimatedExpenses[category]),
+      currency: estimatedExpenses.currency,
+    }))
+    .filter((entry) => Number.isFinite(entry.amount) && entry.amount > 0);
+};
+
 const getExpenses = async (req, res, next) => {
   try {
     const { tripId } = req.params;
@@ -15,6 +39,98 @@ const getExpenses = async (req, res, next) => {
     });
 
     return successResponse(res, { expenses });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const syncItineraryExpenses = async (req, res, next) => {
+  try {
+    const { tripId } = req.params;
+    const trip = await prisma.trip.findFirst({
+      where: { id: tripId, userId: req.user.id },
+      select: { id: true, currency: true, estimatedExpenses: true },
+    });
+    if (!trip) return errorResponse(res, 'Trip not found or unauthorized', 404);
+
+    const planCosts = getPlanCostEntries(trip.estimatedExpenses);
+    let expenses;
+
+    if (planCosts.length > 0) {
+      expenses = await prisma.$transaction(
+        planCosts.map(({ category, amount, currency }) =>
+          prisma.expense.upsert({
+            where: { sourceKey: `plan:${tripId}:${category}` },
+            create: {
+              tripId,
+              userId: req.user.id,
+              sourceKey: `plan:${tripId}:${category}`,
+              title: `AI plan: ${category}`,
+              description: `Estimated ${category} cost from the AI trip plan`,
+              category,
+              amount,
+              currency: currency || trip.currency,
+              isEstimated: true,
+            },
+            update: {
+              title: `AI plan: ${category}`,
+              description: `Estimated ${category} cost from the AI trip plan`,
+              category,
+              amount,
+              currency: currency || trip.currency,
+              isEstimated: true,
+            },
+          })
+        )
+      );
+    } else {
+      const activities = await prisma.activity.findMany({
+        where: {
+          itineraryDay: { is: { tripId } },
+          estimatedCost: { gt: 0 },
+        },
+        include: {
+          itineraryDay: {
+            select: { date: true },
+          },
+        },
+      });
+
+      expenses = await prisma.$transaction(
+        activities.map((activity) =>
+          prisma.expense.upsert({
+            where: { sourceKey: `activity:${activity.id}` },
+            create: {
+              tripId,
+              userId: req.user.id,
+              sourceKey: `activity:${activity.id}`,
+              title: activity.name,
+              description: activity.description,
+              category: mapActivityCategory(activity.category),
+              amount: activity.estimatedCost,
+              currency: activity.currency || trip.currency,
+              date: activity.itineraryDay.date || new Date(),
+              isEstimated: true,
+            },
+            update: {
+              title: activity.name,
+              description: activity.description,
+              category: mapActivityCategory(activity.category),
+              amount: activity.estimatedCost,
+              currency: activity.currency || trip.currency,
+              date: activity.itineraryDay.date || new Date(),
+              isEstimated: true,
+            },
+          })
+        )
+      );
+    }
+
+    return successResponse(
+      res,
+      { syncedCount: expenses.length },
+      'AI itinerary costs synced to the budget'
+    );
   } catch (err) {
     next(err);
   }
@@ -41,7 +157,7 @@ const createExpense = async (req, res, next) => {
         title,
         description,
         amount: parseFloat(amount),
-        currency: currency || trip.currency || 'USD',
+        currency: currency || trip.currency || 'INR',
         date: date ? new Date(date) : new Date(),
         isEstimated: Boolean(isEstimated),
         receiptUrl,
@@ -155,8 +271,11 @@ const getAnalytics = async (req, res, next) => {
 
 module.exports = {
   getExpenses,
+  syncItineraryExpenses,
   createExpense,
   updateExpense,
   deleteExpense,
   getAnalytics,
+  mapActivityCategory,
+  getPlanCostEntries,
 };

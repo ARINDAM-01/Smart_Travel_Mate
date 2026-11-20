@@ -87,7 +87,7 @@ export const createTripPdf = (trip) => {
   addText(`Travelers: ${trip.numTravelers || 1}`);
   addText(
     `Budget: ${trip.budget !== null && trip.budget !== undefined
-      ? `${trip.currency || 'USD'} ${trip.budget}`
+      ? `${trip.currency || 'INR'} ${trip.budget}`
       : 'Flexible'}`,
     { after: 8 }
   );
@@ -151,7 +151,7 @@ export const createTripPdf = (trip) => {
       }
       if (activity.estimatedCost > 0) {
         addText(
-          `Estimated cost: ${activity.currency || trip.currency || 'USD'} ${activity.estimatedCost}`,
+          `Estimated cost: ${activity.currency || trip.currency || 'INR'} ${activity.estimatedCost}`,
           { fontSize: 9, indent: 6, after: 3 }
         );
       } else {

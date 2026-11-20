@@ -10,7 +10,7 @@ const activitySchema = z.object({
   startTime: z.string().optional(),
   endTime: z.string().optional(),
   estimatedCost: z.number().nonnegative().optional().default(0),
-  currency: z.string().default('USD'),
+  currency: z.string().default('INR'),
   category: z.string().optional().default('activity'),
   location: z.string().optional(),
   latitude: z.number().optional().nullable(),
@@ -40,7 +40,7 @@ const generatedItinerarySchema = z.object({
     activities: z.number().default(0),
     miscellaneous: z.number().default(0),
     totalEstimated: z.number().default(0),
-    currency: z.string().default('USD'),
+    currency: z.string().default('INR'),
   }),
   accommodationSuggestions: z.array(z.object({
     name: z.string(),
@@ -90,8 +90,8 @@ Duration: ${preferences.days || 3} days
 Departure Date: ${preferences.startDate || 'Flexible'}
 Return Date: ${preferences.endDate || 'Flexible'}
 Number of Travelers: ${preferences.numTravelers || 1}
-Budget Tier / Amount: ${preferences.budget ? `${preferences.budget} ${preferences.currency || 'USD'}` : 'Moderate'}
-Currency: ${preferences.currency || 'USD'}
+Budget Tier / Amount: ${preferences.budget ? `${preferences.budget} ${preferences.currency || 'INR'}` : 'Moderate'}
+Currency: ${preferences.currency || 'INR'}
 Travel Style: ${preferences.travelStyle || 'Balanced Explorer'}
 Transportation Preference: ${preferences.transportationPreference || 'Mixed / Public & Rail'}
 Accommodation Preference: ${preferences.accommodationPreference || 'Boutique Hotel / Well-rated'}
@@ -117,7 +117,7 @@ Return a single valid JSON object strictly complying with this structure:
           "startTime": "09:00",
           "endTime": "11:30",
           "estimatedCost": 25,
-          "currency": "${preferences.currency || 'USD'}",
+          "currency": "${preferences.currency || 'INR'}",
           "category": "museum / sight / food / transport",
           "location": "Specific address or landmark",
           "latitude": 48.8566,
@@ -136,7 +136,7 @@ Return a single valid JSON object strictly complying with this structure:
     "activities": 180,
     "miscellaneous": 70,
     "totalEstimated": 1050,
-    "currency": "${preferences.currency || 'USD'}"
+    "currency": "${preferences.currency || 'INR'}"
   },
   "accommodationSuggestions": [
     { "name": "Hotel Name", "type": "Hotel", "area": "Neighborhood", "priceRange": "$$$", "description": "Why it fits" }
@@ -186,7 +186,7 @@ You are TravelMate AI, an expert travel concierge and route planner.
 Context:
 Current Trip: ${context.tripTitle || 'None specified'}
 Destinations: ${context.destinations ? JSON.stringify(context.destinations) : 'General'}
-User Currency: ${context.currency || 'USD'}
+User Currency: ${context.currency || 'INR'}
 
 Provide helpful, concise, well-structured travel advice. Use markdown bullets and formatting. Never fabricate live booking prices or claim guaranteed reservations.
 `;

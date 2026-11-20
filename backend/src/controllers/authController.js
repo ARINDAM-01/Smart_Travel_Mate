@@ -64,7 +64,7 @@ const login = async (req, res, next) => {
             email: 'demo@travelmate.com',
             name: 'Alex Rivera',
             passwordHash,
-            preferredCurrency: 'USD',
+            preferredCurrency: 'INR',
             travelPreferences: ['cultural', 'food', 'adventure'],
             notificationPrefs: { emailUpdates: true, tripReminders: true },
           },

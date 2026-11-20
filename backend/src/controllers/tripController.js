@@ -77,7 +77,7 @@ const createTrip = async (req, res, next) => {
         endDate: endDate ? new Date(endDate) : null,
         numTravelers: parseInt(numTravelers) || 1,
         budget: budget != null && budget !== '' ? parseFloat(budget) : null,
-        currency: currency || req.user.preferredCurrency || 'USD',
+        currency: currency || req.user.preferredCurrency || 'INR',
         travelStyle,
         notes,
         coverImageUrl,
