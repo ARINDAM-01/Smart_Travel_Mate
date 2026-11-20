@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { GoogleLogin } from '@react-oauth/google';
 import { User, Mail, Lock, Eye, EyeOff, Plane, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 
 const Register = () => {
-  const { user, register } = useAuth();
+  const { user, register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
@@ -51,6 +52,16 @@ const Register = () => {
       navigate('/dashboard');
     } else {
       setErrorMsg(result.error || 'Registration failed');
+    }
+  };
+
+  const handleGoogleSuccess = async ({ credential }) => {
+    setErrorMsg('');
+    const result = await loginWithGoogle(credential);
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setErrorMsg(result.error || 'Google authentication failed');
     }
   };
 
@@ -152,6 +163,29 @@ const Register = () => {
               </Button>
             </div>
           </form>
+
+          {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+            <>
+              <div className="my-5 flex items-center gap-3 text-xs text-white/40">
+                <div className="h-px flex-1 bg-white/10" />
+                <span>OR</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+              <div className="flex justify-center">
+                <GoogleLogin
+                  text="signup_with"
+                  onSuccess={handleGoogleSuccess}
+                  onError={({ error } = {}) => {
+                    const hint = error
+                      ? `Google authentication failed (${error}).`
+                      : 'Google authentication failed.';
+                    setErrorMsg(`${hint} If the page reports origin_mismatch, add this exact browser origin to Google Cloud Console: ${window.location.origin}`);
+                  }}
+                  useOneTap={false}
+                />
+              </div>
+            </>
+          )}
 
           <div className="mt-6 pt-6 border-t border-white/10 text-center text-xs text-white/50">
             Already have an account?{' '}
