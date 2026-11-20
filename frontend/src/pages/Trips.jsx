@@ -6,6 +6,7 @@ import {
   Plus,
   Trash2,
   Copy,
+  Download,
   Share2,
   Edit2,
   Sparkles,
@@ -25,6 +26,7 @@ import Modal from '../components/common/Modal';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import { TRAVEL_STYLES, CURRENCY_LIST } from '../utils/constants';
+import { exportTripPdf } from '../utils/tripPdf';
 
 const Trips = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -146,6 +148,15 @@ const Trips = () => {
       fetchTripDetails(data.data.trip.id);
     } catch (err) {
       alert(extractError(err));
+    }
+  };
+
+  const handleExportPdf = () => {
+    try {
+      exportTripPdf(activeTrip);
+    } catch (err) {
+      console.error('Failed to export trip PDF:', err);
+      alert('Could not export this trip as a PDF. Please try again.');
     }
   };
 
@@ -271,6 +282,14 @@ const Trips = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={Download}
+                    onClick={handleExportPdf}
+                  >
+                    Export PDF
+                  </Button>
                   <Link to={`/dashboard/graph?tripId=${activeTrip.id}`}>
                     <Button variant="secondary" size="sm" icon={Network}>
                       Graph
