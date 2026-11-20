@@ -1,4 +1,5 @@
 const {
+  getBudgetCategoryData,
   getCategoryBreakdown,
   mapActivityCategory,
 } = require('../src/controllers/expenseController');
@@ -26,6 +27,30 @@ describe('Budget category ranking', () => {
         { category: 'activities', amount: 30, percentage: 23 },
         { category: 'food', amount: 12.5, percentage: 9 },
       ]);
+  });
+
+  test('uses itinerary estimates for the breakdown when no expenses are recorded', () => {
+    expect(getBudgetCategoryData([], {
+      transportation: 70,
+      food: 30,
+      totalEstimated: 100,
+      currency: 'INR',
+    })).toEqual({
+      byCategory: [
+        { category: 'transportation', amount: 70, percentage: 70 },
+        { category: 'food', amount: 30, percentage: 30 },
+      ],
+      byCategorySource: 'planned',
+    });
+  });
+
+  test('uses recorded expenses instead of plan estimates when available', () => {
+    expect(getBudgetCategoryData([
+      { category: 'food', amount: 20 },
+    ], { transportation: 70 })).toEqual({
+      byCategory: [{ category: 'food', amount: 20, percentage: 100 }],
+      byCategorySource: 'expenses',
+    });
   });
 });
 

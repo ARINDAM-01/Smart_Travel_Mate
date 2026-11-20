@@ -347,7 +347,9 @@ const Budget = () => {
             <div className="glass-card p-6 border border-white/10">
               <h3 className="text-sm font-bold uppercase tracking-wider text-white/80 mb-6 flex items-center gap-2">
                 <PieIcon size={16} className="text-electric-cyan" />
-                Category Breakdown
+                {analytics.byCategorySource === 'planned'
+                  ? 'Planned Budget Breakdown'
+                  : 'Category Breakdown'}
               </h3>
               {sortedCategoryExpenses.length > 0 ? (
                 <>
@@ -413,7 +415,7 @@ const Budget = () => {
                 </>
               ) : (
                 <div className="h-64 flex items-center justify-center text-xs text-white/40 italic">
-                  No categorical expense data recorded yet.
+                  No category budget or expense data recorded yet.
                 </div>
               )}
             </div>
