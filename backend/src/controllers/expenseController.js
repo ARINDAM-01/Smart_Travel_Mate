@@ -24,6 +24,28 @@ const getCategoryBreakdown = (categoryMap, totalSpent) =>
     }))
     .sort((a, b) => b.amount - a.amount);
 
+const getBudgetCategoryData = (expenses, estimatedExpenses) => {
+  if (expenses.length > 0) {
+    const categoryMap = {};
+    for (const expense of expenses) {
+      categoryMap[expense.category] = (categoryMap[expense.category] || 0) + expense.amount;
+    }
+    const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    return {
+      byCategory: getCategoryBreakdown(categoryMap, total),
+      byCategorySource: 'expenses',
+    };
+  }
+
+  const planCosts = getPlanCostEntries(estimatedExpenses);
+  const categoryMap = Object.fromEntries(planCosts.map(({ category, amount }) => [category, amount]));
+  const plannedTotal = planCosts.reduce((sum, { amount }) => sum + amount, 0);
+  return {
+    byCategory: getCategoryBreakdown(categoryMap, plannedTotal),
+    byCategorySource: planCosts.length > 0 ? 'planned' : 'expenses',
+  };
+};
+
 const getExpenses = async (req, res, next) => {
   try {
     const { tripId } = req.params;
@@ -211,6 +233,7 @@ const getAnalytics = async (req, res, next) => {
     const { tripId } = req.params;
     const trip = await prisma.trip.findFirst({
       where: { id: tripId, userId: req.user.id },
+      select: { id: true, currency: true, budget: true, estimatedExpenses: true },
     });
     if (!trip) return errorResponse(res, 'Trip not found', 404);
 
@@ -223,12 +246,10 @@ const getAnalytics = async (req, res, next) => {
     const estimated = expenses.filter((e) => e.isEstimated).reduce((sum, e) => sum + e.amount, 0);
     const actual = expenses.filter((e) => !e.isEstimated).reduce((sum, e) => sum + e.amount, 0);
 
-    const categoryMap = {};
-    for (const exp of expenses) {
-      categoryMap[exp.category] = (categoryMap[exp.category] || 0) + exp.amount;
-    }
-
-    const byCategory = getCategoryBreakdown(categoryMap, totalSpent);
+    const { byCategory, byCategorySource } = getBudgetCategoryData(
+      expenses,
+      trip.estimatedExpenses
+    );
 
     // Daily spending grouping
     const dateMap = {};
@@ -256,6 +277,7 @@ const getAnalytics = async (req, res, next) => {
       estimatedSpent: Math.round(estimated * 100) / 100,
       actualSpent: Math.round(actual * 100) / 100,
       byCategory,
+      byCategorySource,
       dailySpending,
       expenseCount: expenses.length,
     });
@@ -272,5 +294,6 @@ module.exports = {
   deleteExpense,
   getAnalytics,
   getCategoryBreakdown,
+  getBudgetCategoryData,
   mapActivityCategory,
 };
